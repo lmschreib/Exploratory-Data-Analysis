@@ -45,53 +45,53 @@ TMA_CMA_assmt_score : The percentage of TMA score and CMA score
 TMA_assmt_score : The percentage of CMA score
 CMA_assmt_score : The percentage of CMA score
 total_weight : The combinded weight of CMA and TMA
-final_exam : 1 mean students have final exam 
-is_reenrolled : 1 mean students re-enrolled, 0 mean students do not re-enrolled
-
+final_exam : 1 mean if students have final exam, 0 mean students have no final exam
+is_reenrolled : >=1 mean students re-enrolled
+final_exam_score : final exam score
 
 *********** SQL DOCUMENTATION ***** */
 
 
-Create table public."studentAssessmentFeatures"
-as(
-SELECT csrt.id_student,csrt.code_module,csrt.code_presentation,csrt.final_result,TMA_CMA_assmt_score,total_weight,
-final_exam,TMA_assmt_score,CMA_assmt_score,is_reenrolled
-FROM public."studentCourseRegistrationFULLSTG" as csrt LEFT OUTER JOIN
-
-(SELECT id_student,
-sum(case when assessment_type in('CMA','TMA') then (weight*score)/100 else 0 end) as TMA_CMA_assmt_score,
-sum(case when assessment_type in ('TMA') then (weight*score)/100 else 0 end) as TMA_assmt_score,
-sum(case when assessment_type in('CMA') then (weight*score)/100 else 0 end) as CMA_assmt_score,
-sum(case when assessment_type in('CMA','TMA') then weight else 0 end) as total_weight,
-count(case when assessment_type = 'Exam' then 1 else NULL end) as final_exam,
-count(case when is_banked = '1' then 1 else NULL end) as is_reenrolled
-FROM public."studentAssessmentFULLSTG"
--- ON assmt.id_student = csrt.id_student
-where id_student not in (select id_student from public."studentAssessmentFULLSTG" 
-where is_banked = 1)
-group by id_student,code_module,code_presentation
-
-union 
--- query student whos assessment result has been transferred
-SELECT id_student,
-sum(case when assessment_type in('CMA','TMA') then (weight*score)/100 else 0 end) as TMA_CMA_assmt_score,
-sum(case when assessment_type in ('TMA') then (weight*score)/100 else 0 end) as TMA_assmt_score,
-sum(case when assessment_type in('CMA') then (weight*score)/100 else 0 end) as CMA_assmt_score,
-sum(case when assessment_type in('CMA','TMA') then weight else 0 end) as total_weight,
-count(case when assessment_type = 'Exam' then 1 else NULL end) as final_exam,
-count(case when is_banked = '1' then 1 else NULL end) as is_reenrolled
-FROM public."studentAssessmentFULLSTG"
--- ON assmt.id_student = csrt.id_student
-where id_student in (select id_student from public."studentAssessmentFULLSTG" 
-where is_banked = 1)
-group by id_student,code_module) as assmtSTG
-
-
-ON assmtSTG.id_student = csrt.id_student
-order by 
--- final_result desc, 
-csrt.id_student
-);
+CREATE TABLE public."studentAssessmentFeaturesSTG"
+AS
+   (  SELECT id_student,
+             code_module,
+             code_presentation,
+             sum (CASE WHEN assessment_type = 'Exam' THEN score ELSE 0 END)
+                AS final_exam_score,
+             sum (
+                CASE
+                   WHEN assessment_type IN ('CMA', 'TMA')
+                   THEN
+                      (weight * score) / 100
+                   ELSE
+                      0
+                END)
+                AS TMA_CMA_assmt_score,
+             sum (
+                CASE
+                   WHEN assessment_type IN ('TMA') THEN (weight * score) / 100
+                   ELSE 0
+                END)
+                AS TMA_assmt_score,
+             sum (
+                CASE
+                   WHEN assessment_type IN ('CMA') THEN (weight * score) / 100
+                   ELSE 0
+                END)
+                AS CMA_assmt_score,
+             sum (
+                CASE
+                   WHEN assessment_type IN ('CMA', 'TMA') THEN weight
+                   ELSE 0
+                END)
+                AS total_weight,
+             count (CASE WHEN assessment_type = 'Exam' THEN 1 ELSE NULL END)
+                AS final_exam,
+             count (CASE WHEN is_banked = '1' THEN 1 ELSE NULL END)
+                AS is_reenrolled
+        FROM public."studentAssessmentFULLSTG"
+    GROUP BY id_student, code_module, code_presentation);
 
 /********* SQL DOCUMENTATION *****
 Creates the table for the Student Course Registration Features table
@@ -162,20 +162,23 @@ CREATE TABLE public."studentCourseRegistrationFeatures"
 
 *********** SQL DOCUMENTATION ***** */
 
-Create table public."analysisDataset"
-as (
-select stdtreg.id_student, stdtreg.code_module, stdtreg.code_presentation, stdtreg.module_domain, stdtreg.module_presentation_length,
+Create table public."analysisFeatures"
+as 
+(select stdtreg.id_student, stdtreg.code_module, stdtreg.code_presentation, stdtreg.module_domain, stdtreg.module_presentation_length,
         stdtreg.term, stdtreg.year, stdtreg.num_of_prev_attempts,
-	   vle.b4_sum_clicks, vle.q1_sum_clicks, vle.q2_sum_clicks, vle.q3_sum_clicks, vle.q4_sum_clicks,
-	   asmt.cma_assmt_score, asmt.tma_assmt_score, asmt.tma_cma_assmt_score, asmt.final_exam, asmt.total_weight, stdtreg.final_result, stdtreg.pass_fail_ind,
+	    stdtreg.final_result, stdtreg.pass_fail_ind,
 	   stdtreg.reg_period, stdtreg.date_registration, stdtreg.date_unregistration,
 	   stdtreg.disability, stdtreg.gender, stdtreg.age_band, stdtreg.region, stdtreg.highest_education,
-	     stdtreg.imd_band, stdtreg.studied_credits
-	   
+	     stdtreg.imd_band, stdtreg.studied_credits,asmtVle.b4_sum_clicks, asmtVle.q1_sum_clicks, asmtVle.q2_sum_clicks, asmtVle.q3_sum_clicks, asmtVle.q4_sum_clicks,
+	   asmtVle.cma_assmt_score, asmtVle.tma_assmt_score, asmtVle.tma_cma_assmt_score, asmtVle.final_exam, asmtVle.total_weight,asmtVle.is_reenrolled,asmtVle.final_exam_score
 from
-	public."studentCourseRegistrationFeatures" stdtreg,
-	public."studentVleFeatures" vle,
-	public."studentAssessmentFeatures" asmt
-where stdtreg.id_student = asmt.id_student AND stdtreg.code_module = asmt.code_module AND stdtreg.code_presentation = asmt.code_presentation
-  AND stdtreg.id_student = vle.id_student AND stdtreg.code_module = vle.code_module AND stdtreg.code_presentation = vle.code_presentation
+	public."studentCourseRegistrationFeatures" as stdtreg LEFT join
+	
+	(select vle.b4_sum_clicks, vle.q1_sum_clicks, vle.q2_sum_clicks, vle.q3_sum_clicks, vle.q4_sum_clicks,
+	   asmt.*
+from
+	public."studentAssessmentFeaturesSTG" asmt RIGHT JOIN
+	public."studentVleFeatures" vle
+on asmt.id_student = vle.id_student AND asmt.code_module = vle.code_module AND asmt.code_presentation = vle.code_presentation) as asmtVle
+on stdtreg.id_student = asmtVle.id_student AND stdtreg.code_module = asmtVle.code_module AND stdtreg.code_presentation = asmtVle.code_presentation
 );
