@@ -1,12 +1,12 @@
 
-/*
-
+/********* SQL DOCUMENTATION *****
 Creates the table for the VLE Features table
 	b4_sum_clicks - this is the number of clicks on the vle before the class started
-	q1_sum_clicks - this is the number clicks during the 
-
-
-*/
+	q1_sum_clicks - this is the number clicks during the first quarter of the class defines as the first 60 days
+	q2_sum_clicks - this is the number clicks during the second quarter of the class defines as the first 60 - 120 days
+	q3_sum_clicks - this is the number clicks during the third quarter of the class defines as the first 121 - 180 days
+	q4_sum_clicks - this is the number clicks during the fourth quarter of the class defines as anything between day 181 and the end of class 
+*********** SQL DOCUMENTATION ***** */
 CREATE TABLE public."studentVleFeatures"
   AS (
 select id_student, code_module, code_presentation,
@@ -34,6 +34,14 @@ from public."studentVleFULLSTG" as vle
 group by id_student, code_module, code_presentation
 order by id_student, code_module, code_presentation
 );
+
+
+/********* SQL DOCUMENTATION *****
+
+Jinna to add comment
+
+*********** SQL DOCUMENTATION ***** */
+
 
 Create table public."studentAssessmentResultSTG"
 as(
@@ -75,6 +83,24 @@ order by
 -- final_result desc, 
 csrt.id_student
 );
+
+/********* SQL DOCUMENTATION *****
+Creates the table for the Student Course Registration Features table
+	module_presentation_length - length of the class by days; integer
+	Year - the class was taken (2013 or 2014)	
+	Term - B means February and J means October
+	start_month - translated from term; FEB means February and OCT mean October
+	pass_fail_ind - pass fail indicator where NULL means withdrawn and PASS means either pass or distinction
+	reg_period - registration period
+						WEEKB4 - students registered within a week (0-7 days) before the class started
+						MONTHB4 - students registered greater than a week and a month (30 days) before the class started 	
+						QUARTERB4 - students registered greater than a month and a quarter (90 days) before the class started
+						LONGB4 - students registered greater than 90 days before the class started
+	module_domain - group of the type of class from Martin (dataset owner)
+						Social Science courses are defined as AAA, BBB, and GGG
+    					STEM courses are defined as CCC, DDD, EEE, FFF
+	 
+*********** SQL DOCUMENTATION ***** */
 
 CREATE TABLE public."studentCourseRegistrationFeatures"
   AS (
@@ -120,6 +146,12 @@ CREATE TABLE public."studentCourseRegistrationFeatures"
 		AND crse.code_presentation = stdtreg.code_presentation and crse.code_module = stdtreg.code_module
 	ORDER BY stdtreg.id_student, stdtreg.code_module, stdtreg.code_presentation
   );
+
+/********* SQL DOCUMENTATION *****
+
+	Combining all the feature datasets to create one table at the student, module, and presentation level
+
+*********** SQL DOCUMENTATION ***** */
 
 Create table public."analysisDataset"
 as (
