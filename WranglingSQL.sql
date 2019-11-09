@@ -40,13 +40,22 @@ order by id_student, code_module, code_presentation
 
 Jinna to add comment
 
+Creates the table for the studentAssessment Features table
+TMA_CMA_assmt_score : The percentage of TMA score and CMA score
+TMA_assmt_score : The percentage of CMA score
+CMA_assmt_score : The percentage of CMA score
+total_weight : The combinded weight of CMA and TMA
+final_exam : 1 mean students have final exam 
+is_reenrolled : 1 mean students re-enrolled, 0 mean students do not re-enrolled
+
+
 *********** SQL DOCUMENTATION ***** */
 
 
-Create table public."studentAssessmentResultSTG"
+Create table public."studentAssessmentFeatures"
 as(
 SELECT csrt.id_student,csrt.code_module,csrt.code_presentation,csrt.final_result,TMA_CMA_assmt_score,total_weight,
-final_exam,TMA_assmt_score,CMA_assmt_score
+final_exam,TMA_assmt_score,CMA_assmt_score,is_reenrolled
 FROM public."studentCourseRegistrationFULLSTG" as csrt LEFT OUTER JOIN
 
 (SELECT id_student,
@@ -55,7 +64,7 @@ sum(case when assessment_type in ('TMA') then (weight*score)/100 else 0 end) as 
 sum(case when assessment_type in('CMA') then (weight*score)/100 else 0 end) as CMA_assmt_score,
 sum(case when assessment_type in('CMA','TMA') then weight else 0 end) as total_weight,
 count(case when assessment_type = 'Exam' then 1 else NULL end) as final_exam,
-count(case when is_banked = '1' then 1 else NULL end) as has_transferred
+count(case when is_banked = '1' then 1 else NULL end) as is_reenrolled
 FROM public."studentAssessmentFULLSTG"
 -- ON assmt.id_student = csrt.id_student
 where id_student not in (select id_student from public."studentAssessmentFULLSTG" 
@@ -70,7 +79,7 @@ sum(case when assessment_type in ('TMA') then (weight*score)/100 else 0 end) as 
 sum(case when assessment_type in('CMA') then (weight*score)/100 else 0 end) as CMA_assmt_score,
 sum(case when assessment_type in('CMA','TMA') then weight else 0 end) as total_weight,
 count(case when assessment_type = 'Exam' then 1 else NULL end) as final_exam,
-count(case when is_banked = '1' then 1 else NULL end) as has_transferred
+count(case when is_banked = '1' then 1 else NULL end) as is_reenrolled
 FROM public."studentAssessmentFULLSTG"
 -- ON assmt.id_student = csrt.id_student
 where id_student in (select id_student from public."studentAssessmentFULLSTG" 
